@@ -5,7 +5,7 @@ import plotly.express as px
 import folium
 from streamlit_folium import folium_static
 from folium.plugins   import MarkerCluster
-import geopandas
+import geopandas as gp
 
 url = 'https://opendata.arcgis.com/datasets/83fc2e72903343aabff6de8cb445b81c_2.geojson'
 #================================================
