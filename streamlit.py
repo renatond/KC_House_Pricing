@@ -15,6 +15,7 @@ from folium.plugins import MarkerCluster
 import geopandas
 from datetime import datetime
 import shapely
+from PIL import Image
 
 
 # ================================================
@@ -269,8 +270,16 @@ df = data[f_attributes]
 # Data Overview
 # ==============================================
 
-st.title( 'House Rocket Company')
-st.markdown(' Welcome to House Rocet Data Analysis')
+c1, c2 = st.columns((1,5))
+
+
+with c1:
+    photo = Image.open('house_rocket_logo.png')
+    st.image(photo, width=200)
+
+with c2:
+    st.title( 'House Rocket Company')
+    st.markdown(' Welcome to House Rocet Data Analysis')
 st.header ( 'Data overview')
 float_columns = df.select_dtypes( include=[ 'float64'] ).columns.tolist()
 
