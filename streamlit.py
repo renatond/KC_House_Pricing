@@ -380,20 +380,23 @@ c1, c2 = st.columns((1,1))
 
 # Houses per bedrooms
 c1.header( 'Houses per bedrooms' )
-df = data[data['bedrooms'] <= f_bedrooms_analysis]
-# fig = px.histogram( df, x='bedrooms', nbins=19 )
-# c1.plotly_chart( fig, use_containder_width=True )
 
-dataframe = data[['bathrooms','id']].groupby('bathrooms').count().reset_index()
-dataframe.columns = ['bathrooms', 'QTD.']
+bedrooms_df = data[['bedrooms','id']].groupby('bedrooms').count().reset_index()
+bedrooms_df.columns = ['bedrooms', 'QTD.']
+df = bedrooms_df[bedrooms_df['bedrooms'] <= f_bedrooms_analysis]
+rows = df.shape[0]
+fig = px.bar( df.head(rows), x='bedrooms', y='QTD.', text_auto=True, color='bedrooms', color_continuous_scale=px.colors.sequential.YlOrRd )
+fig.update_layout(bargap=0.2)
+c1.plotly_chart( fig, use_containder_width=True )
 
-fig = sea.countplot(data=df, x='bedrooms')
-st.pyplot(fig.get_figure())
 
 # Houses per bathrooms
 c2.header( 'Houses per bathrooms' )
-df = dataframe[dataframe['bathrooms'] <= f_bathrooms_analysis]
+
+bathooms_df = data[['bathrooms','id']].groupby('bathrooms').count().reset_index()
+bathooms_df.columns = ['bathrooms', 'QTD.']
+df = bathooms_df[bathooms_df['bathrooms'] <= f_bathrooms_analysis]
 rows = df.shape[0]
 fig = px.bar( df.head(rows), x='bathrooms', y='QTD.', text_auto=True, color='bathrooms', color_continuous_scale=px.colors.sequential.YlOrRd )
 fig.update_layout(bargap=0.2)
-st.plotly_chart( fig, use_containder_width=True )
+c2.plotly_chart( fig, use_containder_width=True )
