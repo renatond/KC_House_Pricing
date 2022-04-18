@@ -379,7 +379,8 @@ with c2:
 c1, c2 = st.columns((1,1))
 
 # Houses per bedrooms
-c1.header( 'Houses per bedrooms' )
+c1.markdown("<h2 style='text-align: center; color: white;'>Houses per bedrooms</h2>", unsafe_allow_html=True)
+# c1.header( 'Houses per bedrooms' )
 
 bedrooms_df = data[['bedrooms','id']].groupby('bedrooms').count().reset_index()
 bedrooms_df.columns = ['bedrooms', 'QTD.']
