@@ -4,8 +4,6 @@ from re import template
 from turtle import bgcolor
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sympy import appellf1
 import streamlit as st
 import plotly.express as px
 import folium
@@ -14,7 +12,6 @@ from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 import geopandas
 from datetime import datetime
-import shapely
 from PIL import Image
 
 
@@ -136,6 +133,8 @@ max_price = int( data['price'].max() )
 avg_price = int(data['price'].mean())
 median_price = int(data['price'].median())
 
+data['date'] = pd.to_datetime( data['date'] ).dt.strftime( '%Y-%m-%d' )
+
 # ================================================
 # Sidebar filters
 # ================================================
@@ -248,9 +247,22 @@ with data_overview_filters:
 
 analysis_filters = st.sidebar.expander(label='Analyis Filters')
 with analysis_filters:
-    f_bedrooms_analysis = analysis_filters.slider('Max number of bedrooms', data['bedrooms'].min(), data['bedrooms'].max(), data['bedrooms'].max())
+    f_bedrooms_analysis = analysis_filters.slider('Select Max number of bedrooms:', data['bedrooms'].min(), data['bedrooms'].max(), data['bedrooms'].max())
     f_bathrooms_analysis = analysis_filters.slider('Max number of bathrooms', data['bathrooms'].min(), data['bathrooms'].max(), data['bathrooms'].max())
     f_floors_analysis = analysis_filters.slider('Max number of floors', data['floors'].min(), data['floors'].max(), data['floors'].max())
+    f_year_built = analysis_filters.slider( 'Select Max Year Built', min_year_built, max_year_built, 
+                                                max_year_built )
+    min_date = datetime.strptime( data['date'].min(), '%Y-%m-%d' )
+    max_date = datetime.strptime( data['date'].max(), '%Y-%m-%d' )
+
+    f_date = analysis_filters.slider( 'Select Availability Date Range:', min_date, max_date, (min_date, max_date ))
+    f_price = analysis_filters.slider( 'Select Price Range:', min_price, max_price, (min_price, max_price))
+
+start_color, end_color = st.select_slider(
+     'Select a range of color wavelength',
+     options=['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'],
+     value=('red', 'blue'))
+st.write('You selected wavelengths between', start_color, 'and', end_color)
 
 # ==============================================
 # filtered data transformation
@@ -270,7 +282,7 @@ df = data[f_attributes]
 # Data Overview
 # ==============================================
 
-c1, c2 = st.columns((1,5))
+c1, c2 = st.columns((1,35))
 
 
 with c1:
@@ -278,9 +290,11 @@ with c1:
     st.image(photo, width=200)
 
 with c2:
-    st.title( 'House Rocket Company')
-    st.markdown(' Welcome to House Rocet Data Analysis')
-st.header ( 'Data overview')
+    st.markdown("<h2 style='text-align: center;'>Welcome to House Rocket Data Analysis</h2>", unsafe_allow_html=True)
+
+st.markdown("""---""")
+st.markdown("<h2 style='text-align: center;'>Portifolio Data Overview</h2>", unsafe_allow_html=True)
+
 float_columns = df.select_dtypes( include=[ 'float64'] ).columns.tolist()
 
 
@@ -289,11 +303,11 @@ st.dataframe(df, height=200)
 
 c1, c2 = st.columns((1, 1) )
 
-c1.header( 'Average Values' )
+c1.markdown("<h2 style='text-align: center;'>Average Values</h2>", unsafe_allow_html=True)
 # c1.dataframe( df.style.format(subset=float_columns, formatter="{:.2f}"), height=200 )
 
 desccriptive_float_columns =descriptive_stats.select_dtypes( include=[ 'float64'] ).columns.tolist()
-c2.header( 'Descriptive Analysis' )
+c2.markdown("<h2 style='text-align: center;'>Descriptive Stats</h2>", unsafe_allow_html=True)
 c2.dataframe( descriptive_stats.style.format(formatter="{:.2f}",subset=desccriptive_float_columns), height=200 )
 
 display_filtered_data = st.checkbox( 'Display filtered data')
@@ -301,7 +315,7 @@ display_filtered_data = st.checkbox( 'Display filtered data')
 if display_filtered_data:
     st.dataframe(filtered_data.style.format(subset=float_columns, formatter="{:.2f}"), height=200)
 
-# Draw map
+# Draw map =======================================
 
 data_map = px.scatter_mapbox(filtered_data,
                              lat='lat',
@@ -344,10 +358,11 @@ if display_opp_data:
 # Density Overview
 # ==============================================
 
-st.title('Region Overview')
+st.markdown("""---""")
+st.markdown("<h2 style='text-align: center;'>Geographical Overview</h2>", unsafe_allow_html=True)
 
 c1, c3, c2 = st.columns((10, 1, 10))
-c1.header('Portfolio Density')
+c1.markdown("<h3 style='text-align: center;'>Portifolio Density</h3>", unsafe_allow_html=True)
 
 df = data.sample(1000)
 
@@ -371,7 +386,7 @@ with c1:
     folium_static(density_map, width=550)
 
 # Region Price Map
-c2.header('Price Density')
+c2.markdown("<h3 style='text-align: center;'>Price Density</h3>", unsafe_allow_html=True)
 
 df = data[['price', 'zipcode']].groupby('zipcode').mean().reset_index()
 df.columns = ['ZIP', 'PRICE']
@@ -399,6 +414,10 @@ with c2:
 # ==============================================
 
 
+
+st.markdown("""---""")
+st.markdown("<h2 style='text-align: center;'>Portifolio Analysis</h2>", unsafe_allow_html=True)
+
 c1, c2 = st.columns((1,1))
 
 # Houses per bedrooms
@@ -406,7 +425,14 @@ bedrooms_df = data[['bedrooms','id']].groupby('bedrooms').count().reset_index()
 bedrooms_df.columns = ['bedrooms', 'QTD.']
 df = bedrooms_df[bedrooms_df['bedrooms'] <= f_bedrooms_analysis]
 rows = df.shape[0]
-fig = px.bar( df.head(rows), x='bedrooms', y='QTD.', text_auto=True, color='bedrooms', template='simple_white', color_continuous_scale=px.colors.sequential.YlOrRd, title='Houses per Bedrooms' )
+fig = px.bar( df.head(rows),
+             x='bedrooms',
+             y='QTD.',
+             text_auto=True,
+             color='bedrooms',
+             template='simple_white',
+             color_continuous_scale=px.colors.sequential.YlOrRd,
+             title='Houses per Bedrooms' )
 fig.update_layout(bargap=0.2)
 c1.plotly_chart( fig, use_containder_width=True )
 
@@ -416,20 +442,32 @@ bathooms_df = data[['bathrooms','id']].groupby('bathrooms').count().reset_index(
 bathooms_df.columns = ['bathrooms', 'QTD.']
 df = bathooms_df[bathooms_df['bathrooms'] <= f_bathrooms_analysis]
 rows = df.shape[0]
-fig = px.bar( df.head(rows), x='bathrooms', y='QTD.', text_auto=True, color='bathrooms', template='seaborn', color_continuous_scale=px.colors.sequential.YlOrRd, title='Houses per Bathrooms' )
+fig = px.bar( df.head(rows),
+            x='bathrooms',
+            y='QTD.',
+            text_auto=True,
+            color='bathrooms',
+            template='seaborn',
+            color_continuous_scale=px.colors.sequential.YlOrRd,
+            title='Houses per Bathrooms' )
 fig.update_layout(bargap=0.2)
 c2.plotly_chart( fig, use_containder_width=True )
 
 c1, c2 = st.columns((1,1))
-
-
 
 # Houses per floors
 floors_df = data[['floors','id']].groupby('floors').count().reset_index()
 floors_df.columns = ['floors', 'QTD.']
 df = floors_df[floors_df['floors'] <= f_floors_analysis]
 rows = df.shape[0]
-fig = px.bar( df.head(rows), x='floors', y='QTD.', text_auto=True, color='floors', template='plotly_dark',color_continuous_scale=px.colors.sequential.YlOrRd, title='Houses per Floors')
+fig = px.bar( df.head(rows),
+                x='floors',
+                y='QTD.',
+                text_auto=True,
+                color='floors',
+                template='plotly_dark',
+                color_continuous_scale=px.colors.sequential.YlOrRd,
+                title='Houses per Floors')
 fig.update_layout(bargap=0.2)
 c1.plotly_chart( fig, use_containder_width=True )
 
@@ -439,6 +477,35 @@ bathooms_df = data[['bathrooms','id']].groupby('bathrooms').count().reset_index(
 bathooms_df.columns = ['bathrooms', 'QTD.']
 df = bathooms_df[bathooms_df['bathrooms'] <= f_bathrooms_analysis]
 rows = df.shape[0]
-fig = px.bar( df.head(rows), x='bathrooms', y='QTD.', text_auto=True, color='bathrooms', color_continuous_scale=px.colors.sequential.YlOrRd, title='Houses per Bedrooms' )
+fig = px.bar( df.head(rows),
+                x='bathrooms',
+                y='QTD.',
+                text_auto=True, color='bathrooms',
+                color_continuous_scale=px.colors.sequential.YlOrRd,
+                title='Houses per Bedrooms' )
 fig.update_layout(bargap=0.2)
 c2.plotly_chart( fig, use_containder_width=True )
+
+st.header( 'Average price per year built' )
+
+data = data.loc[data['yr_built'] < f_year_built]
+df = data[['yr_built', 'price']].groupby( 'yr_built' ).mean().reset_index()
+
+
+fig = px.line( df, x='yr_built', y='price' )
+st.plotly_chart( fig, use_container_width=True )
+
+# filter data
+data['date'] = pd.to_datetime( data['date'] )
+data = data[data['date'].between(f_date[0], f_date[1])]
+df = data[['date', 'price']].groupby( 'date' ).mean().reset_index()
+
+fig = px.line( df, x='date', y='price' )
+st.plotly_chart( fig, use_container_width=True )
+
+# ---------- Histogram -----------
+st.header( 'Price Distribuition' )
+
+df = data[data['price'].between(f_price[0], f_price[1])]
+fig = px.histogram( df, x='price', nbins=50 )
+st.plotly_chart( fig, use_container_width=True )
