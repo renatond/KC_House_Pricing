@@ -1,3 +1,5 @@
+from cProfile import label
+from operator import index
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -7,7 +9,7 @@ import geopandas
 from matplotlib import pyplot as plt
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
-from datetime import datetime
+from datetime import datetime, date
 from PIL import Image
 
 # =======================================================================
@@ -40,13 +42,14 @@ data = get_data('Datasets/kc_house_data.csv')
 # =======================================================================
 
 # Adjusting datetime format =============================================
-data['date'] = pd.to_datetime(data['date'])
+data['date'] = pd.to_datetime(data['date']).dt.date
 
 # treatig outliers ======================================================
 data = data.sort_values('bedrooms', ascending=False).reset_index()
 data.loc[0, 'bedrooms'] = 3
 
 # convert areas to metric system ========================================
+area_attributes = []
 data['m2_living'] = data['sqft_living'] * 0.092903
 data['m2_lot'] = data['sqft_lot'] * 0.092903
 data['m2_above'] = data['sqft_above'] * 0.092903
@@ -57,9 +60,9 @@ data = data.drop(['sqft_living', 'sqft_living15',
                  'sqft_lot', 'sqft_lot15', 'sqft_above', 'sqft_basement', 'index'], axis=1)
 
 # Gathering datetime info ===============================================
-data['date_year'] = data['date'].dt.year
-data['date_month'] = data['date'].dt.month
-data['date_week'] = data['date'].dt.isocalendar().week
+data['date_year'] = pd.to_datetime(data['date']).dt.year
+data['date_month'] = pd.to_datetime(data['date']).dt.month
+data['date_week'] = pd.to_datetime(data['date']).dt.week
 
 # Defining seasonality ==================================================
 data['seasonality'] = data['date_month'].apply( lambda x: 'winter' if (x == 12 or x <= 2) else
@@ -67,7 +70,8 @@ data['seasonality'] = data['date_month'].apply( lambda x: 'winter' if (x == 12 o
                                                           'summer' if (6 <= x <= 8) else 'Autumn')
 
 # Checking Basement ===================================================== 
-data['basement'] = data['m2_basement'].apply( lambda x: 'Has Basement' if x != 0 else 'No Basement')
+# data['basement'] = data['m2_basement'].apply( lambda x: 'Has Basement' if x != 0 else 'No Basement')
+data['basement'] = data['m2_basement'].apply( lambda x: 1 if x != 0 else 0)
 
 # create medians dataset ================================================
 attributes = ['price', 'bedrooms','bathrooms', 'm2_living', 'm2_lot', 'floors',
@@ -84,36 +88,8 @@ investment_dataset = comparative_dataset[(comparative_dataset['price'] < compara
            (comparative_dataset['m2_lot'] > comparative_dataset['median_m2_lot']) &
            (comparative_dataset['m2_living'] > comparative_dataset['median_m2_living'])].reset_index()
 
-# Average metrics dataset ===============================================
-ids_per_zipcode = data[['id', 'zipcode']].groupby(
-    'zipcode').count().reset_index()
-metrics_per_zipcode = data[['price', 'bedrooms', 'bathrooms', 'm2_living', 'm2_lot', 'price_m2', 'zipcode']].groupby(
-    'zipcode').mean().reset_index()
-
-avg_stats = pd.merge(ids_per_zipcode, metrics_per_zipcode,
-                     on='zipcode', how='inner')
-
-avg_stats.columns = ['Zipcode', 'Total Houses',
-                     'Average Price', 'Mean of Bedrooms', 'Mean of Bathrooms', 'Average Living Area','Average Lot Area', 'Average Price/m2']
-
-# descriptive statistics dataset=========================================
-stats_attributes = data.select_dtypes(include=['int64', 'float64']).drop(['id', 'waterfront', 'zipcode', 'lat', 'long', 'date_year', 'date_month'], axis=1)
-
-max_ = pd.DataFrame(stats_attributes.apply(np.max))
-min_ = pd.DataFrame(stats_attributes.apply(np.min))
-mean_ = pd.DataFrame(stats_attributes.apply(np.mean))
-median_ = pd.DataFrame(stats_attributes.apply(np.median))
-std_ = pd.DataFrame(stats_attributes.apply(np.std))
-
-descriptive_stats = pd.concat(
-    [max_, min_, mean_, median_, std_], axis=1).reset_index()
-
-descriptive_stats.columns = ['Attributes', 'Max',
-                             'Min', 'Mean', 'Median', 'Std. Deviation']
-
 # Measures ============================================================
 yr_built_list = data['yr_built'].unique()
-
 min_year_built = int(data['yr_built'].min())
 max_year_built = int(data['yr_built'].max())
 min_price = int( data['price'].min() )
@@ -177,13 +153,13 @@ with data_overview_filters:
     bedrooms_selection.append('ALL')
 
     bedrooms_container = data_overview_filters.container()
-    all_bedrooms = data_overview_filters.checkbox('Select all bedrooms')
+    all_bedrooms = data_overview_filters.checkbox('Select all bedrooms', True)
 
     if all_bedrooms:
         s_bedrooms = bedrooms_container.multiselect('Select the numbers of bedrooms:', bedrooms_selection, 'ALL')
         f_bedrooms = sorted(data['bedrooms'].unique().tolist())
     else:
-        s_bedrooms = bedrooms_container.multiselect('Select the numbers of bedrooms:', bedrooms_selection, 2)
+        s_bedrooms = bedrooms_container.multiselect('Select the numbers of bedrooms:', bedrooms_selection, 'ALL')
         if 'ALL' in s_bedrooms:
             f_bedrooms = sorted(data['bedrooms'].unique().tolist())
         else:
@@ -194,13 +170,13 @@ with data_overview_filters:
     bathrooms_selection.append('ALL')
 
     bathrooms_container = data_overview_filters.container()
-    all_bathrooms = data_overview_filters.checkbox('Select all bathrooms')
+    all_bathrooms = data_overview_filters.checkbox('Select all bathrooms', True)
 
     if all_bathrooms:
         s_bathrooms = bathrooms_container.multiselect('Select the numbers of bathrooms:', bathrooms_selection, 'ALL')
         f_bathrooms = sorted(data['bathrooms'].unique().tolist())
     else:
-        s_bathrooms = bathrooms_container.multiselect('Select the numbers of bathrooms:', bathrooms_selection, 2)
+        s_bathrooms = bathrooms_container.multiselect('Select the numbers of bathrooms:', bathrooms_selection, 'ALL')
         if 'ALL' in s_bathrooms:
             f_bathrooms = sorted(data['bathrooms'].unique().tolist())
         else:
@@ -211,13 +187,13 @@ with data_overview_filters:
     floors_selection.append('ALL')
 
     floors_container = data_overview_filters.container()
-    all_floors = data_overview_filters.checkbox('Select all floors')
+    all_floors = data_overview_filters.checkbox('Select all floors', True)
 
     if all_floors:
         s_floors = floors_container.multiselect('Select the numbers of floors:', floors_selection, 'ALL')
         f_floors = sorted(data['floors'].unique().tolist())
     else:
-        s_floors = floors_container.multiselect('Select the numbers of floors:', floors_selection, 2)
+        s_floors = floors_container.multiselect('Select the numbers of floors:', floors_selection, 'ALL')
         if 'ALL' in s_floors:
             f_floors = sorted(data['floors'].unique().tolist())
         else:
@@ -229,57 +205,39 @@ with data_overview_filters:
 
     # waterfront ===================================
 
-    wf1, wf2 = data_overview_filters.columns((1, 1))
+    wf_options = ['Waterfront', 'No Waterfront', 'Both']
+    wf_select = data_overview_filters.radio('Select waterfront option:', wf_options, index=2 )
 
-    wf_yes = wf1.checkbox('Has Water View', True)
-    wf_no = wf2.checkbox('No Water View', True)
-
-    if wf_yes & wf_no:
+    if wf_select == 'Both':
         f_waterfront = [0, 1]
-    elif wf_yes and not wf_no:
+    elif wf_select == 'Waterfront':
         f_waterfront = [1]
     else:
         f_waterfront = [0]
 
-    f_year_built = data_overview_filters.slider( 'Select Year Built Range', min_year_built, max_year_built, (min_year_built, max_year_built) )
-    min_date = data['date'].astype(str).min()
-    max_date = data['date'].astype(str).max()
-    min_date = datetime.strptime( min_date, '%Y-%m-%d' )
-    max_date = datetime.strptime( max_date, '%Y-%m-%d' )
-
-    f_date = data_overview_filters.slider( 'Select Date Range:', min_date, max_date, (min_date, max_date ))
-
-# attribute_filters = st.sidebar.expander(label='Properties Attribute Filters')
-# with attribute_filters:
-#         f_bedrooms_analysis = attribute_filters.slider('Number of bedrooms', min_bedrooms, max_bedrooms, (min_bedrooms, max_bedrooms))
-#         f_bathrooms_analysis = attribute_filters.slider('Number of bathrooms', min_bathrooms, max_bathrooms, (min_bathrooms, max_bathrooms))
-#         f_floors_analysis = attribute_filters.slider('Number of floors', min_floors, max_floors, (min_floors, max_floors))
-
+    # Date Interval ===================================
+    min_date = data['date'].min()
+    max_date = data['date'].max()
+    f_date = data_overview_filters.date_input('Select Date:', (min_date, max_date), min_value=min_date, max_value=max_date )
+ 
+    # Year Built Interval =============================
+    f_yr_built = data_overview_filters.slider( 'Select Year Built Range', min_year_built, max_year_built, (min_year_built, max_year_built) )
 
 # =======================================================================
 # filtered data transformation
 # =======================================================================
 
-filtered_data = data[(data['price'] < f_price) &
+filtered_data = data[(data['price'].between(left=f_price[0], right=f_price[1], inclusive='both')) &
+                     (data['yr_built'].between(left=f_yr_built[0], right=f_yr_built[1], inclusive='both')) &
+                     (data['date'].between(left=f_date[0], right=f_date[1], inclusive='both')) &
                      (data['bedrooms'].isin(f_bedrooms)) &
+                     (data['bathrooms'].isin(f_bathrooms)) &
+                     (data['floors'].isin(f_floors)) &
+                     (data['zipcode'].isin(f_zipcodes)) &
                      (data['waterfront'].isin(f_waterfront))]
 
-# filtered_opp_data = opp[(opp['price'] < f_price) &
-#                         (opp['bedrooms'].isin(f_bedrooms)) &
-#                         (opp['waterfront'].isin(f_waterfront))]
-
-# filtered_attributes = data[(data['bedrooms'].between(left=f_bedrooms_analysis[0], right=f_bedrooms_analysis[1], inclusive='both')) &
-#                         (data['bathrooms'].between(left=f_bathrooms_analysis[0], right=f_bathrooms_analysis[1], inclusive='both')) &
-#                         (data['floors'].between(left=f_floors_analysis[0], right=f_floors_analysis[1], inclusive='both')) &
-#                         (data['waterfront'].isin(f_waterfront_analysis))]
-
-filtered_attributes = data[(data['bedrooms'].isin(f_bedrooms)) &
-                        (data['bathrooms'].isin(f_bathrooms)) &
-                        (data['floors'].isin(f_floors)) &
-                        (data['waterfront'].isin(f_waterfront))]
 
 df = filtered_data[f_attributes].reset_index().drop('index', axis=1)
-df_avg = avg_stats[avg_stats['Zipcode'].isin(f_zipcodes)]
 
 # =======================================================================
 # Data Overview
@@ -304,19 +262,34 @@ st.write(f'{df.shape[0]} properties selected.')
 c1, c2 = st.columns((1, 1))
 
 with c1:    # Average Values
+    # Average metrics dataset ===============================================
+    ids_per_zipcode = filtered_data[['id', 'zipcode']].groupby('zipcode').count().reset_index()
+    metrics_per_zipcode = filtered_data[['price', 'bedrooms', 'bathrooms', 'm2_living', 'm2_lot', 'price_m2', 'zipcode']].groupby('zipcode').mean().reset_index()
+    avg_stats = pd.merge(ids_per_zipcode, metrics_per_zipcode, on='zipcode', how='inner')
+    avg_stats.columns = ['Zipcode', 'Total Houses','Average Price', 'Mean of Bedrooms', 'Mean of Bathrooms', 'Average Living Area','Average Lot Area', 'Average Price/m2']
     float_columns =avg_stats.select_dtypes( include=[ 'float64'] ).columns.tolist()
+    
+    df_avg = avg_stats[avg_stats['Zipcode'].isin(f_zipcodes)]
     c1.markdown("<h3 style='text-align: center;'>Average Values</h3>", unsafe_allow_html=True)
     c1.dataframe( df_avg.style.format(subset=float_columns, formatter="{:.2f}"), height=200 )
 
 with c2:    # Descriptive Stats
+    # descriptive statistics dataset=========================================
+    stats_attributes = filtered_data.select_dtypes(include=['int64', 'float64']).drop(['id', 'waterfront', 'zipcode', 'lat', 'long', 'date_year', 'date_month'], axis=1)
+
+    max_ = pd.DataFrame(stats_attributes.apply(np.max))
+    min_ = pd.DataFrame(stats_attributes.apply(np.min))
+    mean_ = pd.DataFrame(stats_attributes.apply(np.mean))
+    median_ = pd.DataFrame(stats_attributes.apply(np.median))
+    std_ = pd.DataFrame(stats_attributes.apply(np.std))
+
+    descriptive_stats = pd.concat([max_, min_, mean_, median_, std_], axis=1).reset_index()
+
+    descriptive_stats.columns = ['Attributes', 'Max', 'Min', 'Mean', 'Median', 'Std. Deviation']
+
     desccriptive_float_columns =descriptive_stats.select_dtypes( include=[ 'float64'] ).columns.tolist()
     c2.markdown("<h3 style='text-align: center;'>Descriptive Stats</h3>", unsafe_allow_html=True)
     c2.dataframe( descriptive_stats.style.format(formatter="{:.2f}",subset=desccriptive_float_columns), height=200 )
-
-# display_filtered_data = st.checkbox( 'Display filtered data')
-
-# if display_filtered_data:
-#     st.dataframe(filtered_data.style.format(subset=float_columns, formatter="{:.2f}"), height=200)
 
 data_map = px.scatter_mapbox(filtered_data,
                             lat='lat',
@@ -344,10 +317,10 @@ c1, c2 = st.columns((1, 1))
 
 with c1:    # Density Map
     c1.markdown("<h3 style='text-align: center;'>Portifolio Density</h3>", unsafe_allow_html=True)
-    df = data.sample(1000)
+    df = filtered_data
     # Base Map - Folium
-    density_map = folium.Map(location=[data['lat'].mean(),
-                                       data['long'].mean()],
+    density_map = folium.Map(location=[filtered_data['lat'].mean(),
+                                       filtered_data['long'].mean()],
                              default_zoom_start=15)
     marker_cluster = MarkerCluster().add_to(density_map)
     for name, row in df.iterrows():
@@ -364,13 +337,13 @@ with c1:    # Density Map
 with c2:    # Price Map
     c2.markdown("<h3 style='text-align: center;'>Price Density</h3>", unsafe_allow_html=True)
 
-    df = data[['price', 'zipcode']].groupby('zipcode').mean().reset_index()
+    df = filtered_data[['price', 'zipcode']].groupby('zipcode').mean().reset_index()
     df.columns = ['ZIP', 'PRICE']
 
     geofile = geofile[geofile['ZIP'].isin(df['ZIP'].tolist())]
 
-    region_price_map = folium.Map(location=[data['lat'].mean(),
-                                            data['long'].mean()],
+    region_price_map = folium.Map(location=[filtered_data['lat'].mean(),
+                                            filtered_data['long'].mean()],
                                 default_zoom_start=15)
 
     region_price_map.choropleth(data=df,
@@ -388,13 +361,12 @@ with c2:    # Price Map
 # =======================================================================
 
 st.markdown("""---""")
-st.markdown("<h3 style='text-align: center;'>Temporal Analysis of Prices</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center;'>Price Analysis</h3>", unsafe_allow_html=True)
 
 c1, c2 = st.columns((1, 1))
 
 with c1:    # Prices per Year Built
-    data = data.loc[data['yr_built'] < f_year_built]
-    df = data[['yr_built', 'price']].groupby( 'yr_built' ).mean().reset_index()
+    df = filtered_data[['yr_built', 'price']].groupby( 'yr_built' ).mean().reset_index()
     fig = px.line( df,
                     x='yr_built',
                     y='price',
@@ -402,12 +374,37 @@ with c1:    # Prices per Year Built
     c1.plotly_chart( fig, use_container_width=True )
 
 with c2:    # Price Distribution
-    df = data[data['price'].between(f_price[0], f_price[1])]
+    df = filtered_data
     fig = px.histogram( df,
                     x='price',
                     nbins=50,
                     title='Price Distribution' )
     c2.plotly_chart( fig, use_container_width=True )
+
+c1, c2, c3, c4 = st.columns((1, 1, 1, 1))
+
+group_att = ['bedrooms', 'bathrooms', 'floors', 'basement', 'waterfront', 'yr_built', 'date_year']
+options = data.select_dtypes(include=['int64', 'float64']).drop(['id', 'zipcode', 'lat', 'long', 'date_year', 'date_month'], axis=1).columns.to_list()
+first_att = c1.selectbox(label='Select First Attribute', options=options, index=0)
+second_att = c2.selectbox(label='Select Second Attribute', options=data[options].drop([first_att], axis=1).columns.to_list(), index=0)
+third_att = c3.selectbox(label='Select third Attribute', options=options, index=0)
+fourth_att = c4.selectbox(label='Select fourth Attribute', options=group_att, index=0)
+c1, c2 = st.columns((1,1))
+
+with c1:
+    fig = px.scatter(data,x=first_att, y=second_att)
+    c1.plotly_chart( fig, use_container_width=True )
+    correlation = data[first_att].corr(data[second_att])
+    c1.write(f'Correlation between {first_att} and {second_att}: {round(correlation,2)}')
+
+with c2:
+    df = data[['price', fourth_att]].groupby(fourth_att).mean().reset_index()
+    df.columns = [fourth_att, 'Mean of Prices']
+    fig = px.scatter(df,x='Mean of Prices', y=fourth_att)
+    c2.plotly_chart( fig, use_container_width=True )
+    correlation = df['Mean of Prices'].corr(df[fourth_att])
+    c2.write(f'Correlation between Mean of Prices and {fourth_att}: {round(correlation,2)}')
+
 
 # =======================================================================
 # Properties Attributes
@@ -419,7 +416,7 @@ st.markdown("<h3 style='text-align: center;'>Properties Attributes</h3>", unsafe
 c1, c2 = st.columns((1,1))
 
 with c1:    # Houses per bedrooms
-    bedrooms_df = filtered_attributes[['bedrooms','id']].groupby('bedrooms').count().reset_index()
+    bedrooms_df = filtered_data[['bedrooms','id']].groupby('bedrooms').count().reset_index()
     bedrooms_df.columns = ['Bedrooms', 'Properties']
     bedrooms_df['Bedrooms'] = bedrooms_df['Bedrooms'].astype(str)
     rows = bedrooms_df.shape[0]
@@ -434,7 +431,7 @@ with c1:    # Houses per bedrooms
     c1.plotly_chart( fig, use_containder_width=True )
 
 with c2:    # Houses per bathrooms
-    bathrooms_df = filtered_attributes[['bathrooms','id']].groupby('bathrooms').count().reset_index()
+    bathrooms_df = filtered_data[['bathrooms','id']].groupby('bathrooms').count().reset_index()
     bathrooms_df.columns = ['Bathrooms', 'Properties']
     bathrooms_df['Bathrooms'] = bathrooms_df['Bathrooms'].astype(str)
     rows = bathrooms_df.shape[0]
@@ -451,7 +448,7 @@ with c2:    # Houses per bathrooms
 c1, c2 = st.columns((1,1))
 
 with c1:    # Houses per floors
-    floors_df = filtered_attributes[['floors','id']].groupby('floors').count().reset_index()
+    floors_df = filtered_data[['floors','id']].groupby('floors').count().reset_index()
     floors_df.columns = ['Floors', 'Properties']
     floors_df['Floors'] = floors_df['Floors'].astype(str)
     rows = floors_df.shape[0]
@@ -466,8 +463,8 @@ with c1:    # Houses per floors
     c1.plotly_chart( fig, use_containder_width=True )
 
 with c2:    # Houses per waterfront
-    filtered_attributes['Has Waterfront'] = filtered_attributes['waterfront'].apply(lambda x: 'Waterfront' if x == 1 else 'No Waterfront')
-    waterfront_df = filtered_attributes[['Has Waterfront','id']].groupby('Has Waterfront').count().reset_index()
+    filtered_data['Has Waterfront'] = filtered_data['waterfront'].apply(lambda x: 'Waterfront' if x == 1 else 'No Waterfront')
+    waterfront_df = filtered_data[['Has Waterfront','id']].groupby('Has Waterfront').count().reset_index()
     waterfront_df.columns = ['Waterfront', 'Properties']
     rows = waterfront_df.shape[0]
     fig = px.bar( waterfront_df.head(rows),

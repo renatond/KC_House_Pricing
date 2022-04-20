@@ -2,33 +2,34 @@
 
 <img src="house_rocket_logo.png" width=50% height=50%/>
 
-Este é um projeto fictício. A empresa, o contexto e as perguntas de negócios não são reais. Este portfólio está seguindo as recomendações do blog [Seja um Data Scientist](https://sejaumdatascientist.com/os-5-projetos-de-data-science-que-fara-o-recrutador-olhar-para-voce/).
+Disclaimer: Este é um projeto fictício. A empresa, o contexto e as perguntas de negócios não são reais e não têm objetivo comercial. O Dataser público está disponivel no [Kaggle](https://www.kaggle.com/harlfoxem/housesalesprediction).
 
-<!-- O dashboard com os produtos de dados em produção pode ser acessado via navegador pelo [Heroku](https://dso-analytics-house-rocket.herokuapp.com/). Ao acessar a página pode haver uma lentidão para aparecer, pois, o heroku depois de 30 minutos sem uso desliga a pagina web. -->
-O dataset está disponivel no [Kaggle](https://www.kaggle.com/harlfoxem/housesalesprediction)
+Este projeto é o primeiro desafio da [Comunidade DS](https://www.comunidadedatascience.com/).
+
+<!-- O dashboard com os produtos de dados em produção pode ser acessado via navegador pelo [Heroku](https://dso-analytics-house-rocket.herokuapp.com/). -->
+
 
 
 ## 1. Problema de negócios
 ### 1.1 Problema
-A House Rocket é uma plataforma digital que tem como modelo de negócio, a compra e a venda de imóveis usando tecnologia.
-O CEO da House Rocket gostaria de maximizar a receita da empresa encontrando boas oportunidades de negócio.
+A House Rocket é uma plataforma digital que tem como modelo de negócio, a compra e a venda de imóveis usando tecnologia. O CEO da House Rocket gostaria de maximizar a receita da empresa encontrando boas oportunidades de negócio.
 
 Sua principal estratégia é comprar boas casas em ótimas localizações com preços baixos e depois revendê-las posteriormente à preços mais altos. Quanto maior a diferença entre a compra e a venda, maior o lucro da empresa e portanto maior sua receita.
 
 ### 1.2 Objetivo
-O objetivo do projeto é recomendar soluções para o negócio através de Insights gerados por uma ótima Análise Exploratória de Dados e respondendo as demanas de negócio
+O objetivo do projeto é encontrar, através de Insights gerados por Análise Exploratória de Dados (EDA), oportunidades de negócios na região de atuação da House Rocket.
 
 
-### 1.3 Demandas de negócio
-
+### 1.3 Demandas
 Produto de dados solicitado: 
-* Dashboard interativo do portfólio disponível, com todas informações de negócio mais relevantes disponíveis atualmente, para que possam realizar análises.
+* Dashboard interativo do portfólio disponível, com todas informações mais relevantes disponíveis atualmente, para que o CEO e o time de negócios  possa realizar análises (self-service BI).
    
 * Respostas para duas questões:
   - 1 - Quais são os imóveis que deveríamos comprar?
   - 2 - Uma vez o imóvel comprado, qual o melhor momento para vendê-lo, e por qual preço?
+  - 3 - A House Rocket deveria fazer uma reforma para aumentar o preço da venda? Quais seriam as sugestões de mudanças? Qual o incremento no preço dado por cada opção de reforma?
 
-## 2. Premissas de negócio
+## 2. Premissas
 - Todos os produtos de dados entregues devem ser acessíveis via internet.
 - O planejamento da solução será validado com os times de negócio, visando garantir que as soluções desenvolvidas são úteis na sua tomada de decisão.
 
@@ -60,7 +61,7 @@ Variável | Definição
 
 ## 3. Planejamento da solução
 ### 3.1. Produto final 
-O que será entregue efetivamente?
+
 - Um grande dashboard interativo acessível via navegador, contendo os produtos de dados solicitados pelos times de negócio.
   
 ### 3.2. Ferramentas 
@@ -70,7 +71,7 @@ Quais ferramentas serão usadas no processo?
 - Git, Github;
 - Python;
 - Streamlit;
-- Cloud Heroku.
+- Heroku.
   
 ## 4. Os 3 principais insights dos dados
 
