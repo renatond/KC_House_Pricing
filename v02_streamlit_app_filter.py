@@ -27,7 +27,7 @@ def get_geofile( url ):
     return geofile
 
 # get data
-path = '../kc_house_data.csv'
+path = 'Datasets/kc_house_data.csv'
 data = get_data( path )
 
 # get geofile
@@ -190,7 +190,7 @@ st.header( 'Average Price per day' )
 st.sidebar.subheader( 'Select Max Date' )
 
 # load data
-data = get_data( path='kc_house_data.csv' )
+data = get_data( path='Datasets/kc_house_data.csv' )
 data['date'] = pd.to_datetime( data['date'] ).dt.strftime( '%Y-%m-%d' )
 
 # setup filters
