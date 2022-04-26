@@ -1,5 +1,3 @@
-from cProfile import label
-from operator import index
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -35,13 +33,13 @@ def get_data(path):
     data = pd.read_csv(path)
     return data
 
-data = get_data('Datasets/kc_house_data.csv')
+data = get_data('datasets/kc_house_data.csv')
 
 # =======================================================================
 # Data transformation
 # =======================================================================
 
-# Adjusting datetime format =============================================
+# adjusting datetime format =============================================
 data['date'] = pd.to_datetime(data['date']).dt.date
 
 # treatig outliers ======================================================
@@ -49,7 +47,6 @@ data = data.sort_values('bedrooms', ascending=False).reset_index()
 data.loc[0, 'bedrooms'] = 3
 
 # convert areas to metric system ========================================
-area_attributes = []
 data['m2_living'] = data['sqft_living'] * 0.092903
 data['m2_lot'] = data['sqft_lot'] * 0.092903
 data['m2_above'] = data['sqft_above'] * 0.092903
@@ -59,19 +56,18 @@ data['price_m2'] = data['price']/(data['sqft_lot'] * 0.092903)
 data = data.drop(['sqft_living', 'sqft_living15',
                  'sqft_lot', 'sqft_lot15', 'sqft_above', 'sqft_basement', 'index'], axis=1)
 
-# Gathering datetime info ===============================================
+# getting datetime info ===============================================
 data['date_year'] = pd.to_datetime(data['date']).dt.year
 data['date_month'] = pd.to_datetime(data['date']).dt.month
 data['date_week'] = pd.to_datetime(data['date']).dt.week
 
-# Defining seasonality ==================================================
-data['seasonality'] = data['date_month'].apply( lambda x: 'winter' if (x == 12 or x <= 2) else
-                                                          'spring' if (3 <= x < 6) else
-                                                          'summer' if (6 <= x <= 8) else 'Autumn')
+# getting season ==================================================
+data['season'] = data['date_month'].apply( lambda x: 'Winter' if (x == 12 or x <= 2) else
+                                                          'Spring' if (3 <= x < 6) else
+                                                          'Summer' if (6 <= x <= 8) else 'Autumn')
 
-# Checking Basement ===================================================== 
-# data['basement'] = data['m2_basement'].apply( lambda x: 'Has Basement' if x != 0 else 'No Basement')
-data['basement'] = data['m2_basement'].apply( lambda x: 1 if x != 0 else 0)
+# Has Basement ===================================================== 
+data['basement'] = data['m2_basement'].apply( lambda x: 'Has Basement' if x != 0 else 'No Basement')
 
 # create medians dataset ================================================
 attributes = ['price', 'bedrooms','bathrooms', 'm2_living', 'm2_lot', 'floors',
@@ -81,12 +77,22 @@ median_by_zipcode = data[attributes].groupby('zipcode').median().reset_index()
 median_by_zipcode.columns = ['zipcode', 'median_price', 'median_bedrooms','median_bathrooms', 'median_m2_living', 'median_m2_lot', 'median_floors',
               'median_view', 'median_condition', 'median_grade', 'median_m2_above', 'median_m2_basement']
 
+# getting selling seasonality
+seasonality_df = data[['zipcode','season', 'price']].groupby(['zipcode', 'season']).mean().reset_index()
+seasonality_df = seasonality_df.loc[seasonality_df.groupby(['zipcode'])['price'].idxmax()].drop('price', axis=1)
+seasonality_df.columns = ['zipcode', 'seasonality']
+data = pd.merge(data, seasonality_df, on='zipcode', how='inner')
+
 # create investment dataset =========================================
 comparative_dataset = pd.merge(data, median_by_zipcode, on='zipcode', how='inner')
 investment_dataset = comparative_dataset[(comparative_dataset['price'] < comparative_dataset['median_price']) &
            (comparative_dataset['condition'] > comparative_dataset['median_condition']) &
            (comparative_dataset['m2_lot'] > comparative_dataset['median_m2_lot']) &
            (comparative_dataset['m2_living'] > comparative_dataset['median_m2_living'])].reset_index()
+
+investment_dataset['selling_price'] = investment_dataset['median_price'] * 1.3
+investment_dataset['profit'] = investment_dataset['selling_price'] - investment_dataset['price']
+investment_dataset['margin'] = investment_dataset['profit']/investment_dataset['selling_price']
 
 # Measures ============================================================
 yr_built_list = data['yr_built'].unique()
@@ -245,7 +251,7 @@ df = filtered_data[f_attributes].reset_index().drop('index', axis=1)
 c1, c2 = st.columns((1,40))
 
 with c1:    # House Rocket Logo
-    photo = Image.open('house_rocket_logo.png')
+    photo = Image.open('images/house_rocket_logo.png')
     st.image(photo, width=200)
 
 with c2:    # Opening Title
@@ -519,3 +525,12 @@ with i2:    # Investment recommendation report
     i2.markdown("<h5 style='text-align: left;'>Investment Recommendation Report</h5>", unsafe_allow_html=True)
     i2.dataframe(investment_dataset, height=600)
     i2.write(f'{investment_dataset.shape[0]} properties are recommended for purchase.')
+
+investment = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[3]
+brute_return = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[1]
+profit = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[2]
+margin = investment_dataset[['margin', 'selling_price', 'profit', 'price']].mean()[0]
+print(f'o investimento necessário foi de ${investment:,}')
+print(f'o retorno bruto foi de ${brute_return:,}')
+print(f'o lucro total foi de ${profit:,}')
+print(f'A margem média ficou em {margin:,}')
