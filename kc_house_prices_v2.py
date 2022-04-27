@@ -85,15 +85,17 @@ data = pd.merge(data, seasonality_df, on='zipcode', how='inner')
 
 # create investment dataset =========================================
 comparative_dataset = pd.merge(data, median_by_zipcode, on='zipcode', how='inner')
+investment_attr = ['id', 'date', 'bedrooms', 'bathrooms', 'floors', 'm2_living', 'm2_lot', 'waterfront', 'grade', 'zipcode', 'lat', 'long', 'price', 'selling_price', 'profit', 'margin' ]
 investment_dataset = comparative_dataset[(comparative_dataset['price'] < comparative_dataset['median_price']) &
            (comparative_dataset['condition'] > comparative_dataset['median_condition']) &
            (comparative_dataset['m2_lot'] > comparative_dataset['median_m2_lot']) &
-           (comparative_dataset['m2_living'] > comparative_dataset['median_m2_living'])].reset_index()
+           (comparative_dataset['m2_living'] > comparative_dataset['median_m2_living'])].reset_index().drop('index', axis=1)
 
 investment_dataset['selling_price'] = investment_dataset['median_price'] * 1.3
 investment_dataset['profit'] = investment_dataset['selling_price'] - investment_dataset['price']
 investment_dataset['margin'] = investment_dataset['profit']/investment_dataset['selling_price']
 
+investment_dataset = investment_dataset[investment_attr]
 # Measures ============================================================
 yr_built_list = data['yr_built'].unique()
 min_year_built = int(data['yr_built'].min())
