@@ -1,13 +1,12 @@
 # House Rocket
 
-<img src="house_rocket_logo.png" width=50% height=50%/>
+<img src="images/house_rocket_logo.png" width=50% height=50%/>
 
 Disclaimer: Este é um projeto fictício. A empresa, o contexto e as perguntas de negócios não são reais e não têm objetivo comercial. O Dataser público está disponivel no [Kaggle](https://www.kaggle.com/harlfoxem/housesalesprediction).
 
-Este projeto é o primeiro desafio da [Comunidade DS](https://www.comunidadedatascience.com/).
+Este projeto é um desafio da [Comunidade DS](https://www.comunidadedatascience.com/).
 
 <!-- O dashboard com os produtos de dados em produção pode ser acessado via navegador pelo [Heroku](https://dso-analytics-house-rocket.herokuapp.com/). -->
-
 
 
 ## 1. Problema de negócios
@@ -85,17 +84,16 @@ Quais ferramentas serão usadas no processo?
 * Insight de negócio: Prospectar imóvies reformados, onde o preço do imóvel seja até 5% maior que a média dos imóveis não reformados da região, nas mesmas condições.
 
 ## 5. Resultados financeiros para o negócio
-De acordo com os critérios definidos, só foram sugeridos os imóvies com condições excelentes para a compra. 
+De acordo com os critérios definidos, foram sugeridos os imóvies com as seguintes condições para a compra: 
 
-Destes, todos apresentam condições de venda conforme a sazonalidade indicada abaixo:
-* 30% de margem para Primavera;
-* 25% de margem para Verão;
-* 20% de margem para Inverno;
-* 10% de margem para Outono.
+* Preço da propriedade abaixo da mediana da região;
+* Condição da propriedade acima de media da região;
+* Área contruída da propriedade é maior do que a mediana da região;
+* O terreno da propriedade é maior do que a mediana da região.
 
-Mesmo com a margem citada, alguns imóvel ultrapassa o preço da mediana de preços da região. Logo, é possível aumentar ainda mais a margem, conforme as demais características do imóvel. 
+De acordo com a região, foi observada a sazonalidade em que a média de preços é maior, e recomendada a venda nessas épocas com valor 30% acima da mediana das respectivas.
 
-Considerando apenas o lucro por imóvel, o lucro total estimado caso as sugestões de compra e venda sejam seguidas é de aproximadamente US$ 45 milhões dólares.
+Considerando apenas o lucro por imóvel, o lucro total estimado caso as sugestões de compra e venda sejam seguidas é de aproximadamente o $61 milhões de dólares, com uma margem média de lucro esperada de 31.52%.
 
 ## 5. Conclusão
 O objetivo do projeto foi alcançado, dado que os produtos de dados propostos foram gerados com sucesso. Os times já podem utilizar a solução para a tomada de decisão e o atingimento de metas na House Rocket.
@@ -106,12 +104,8 @@ O objetivo do projeto foi alcançado, dado que os produtos de dados propostos fo
 
 Algumas melhorias nos dashboard podem ser incrementadas no futuro:
 
-* Fazer um integração melhor com as tabela de recomendação e os filtros, pois, a única coluna que é levada em 
-consideração é a coluna de preço.
-* Levar em consideração as outras condições de imóveis. O dataset mostra a condições de imoveis em uma escala de 1 a 
-5 e foi usado somente os imóveis de condição 5.
-* Pode ser estudado as regiões com maior valorização de imóveis, afim de comprar imóveis para reforma e depois 
-revendê-los com um preço maior.
+* Desenvolver uma solução de Machine Learning para prever com maior acuracia os preços de venda dos imóveis, objetivando aumentar a margem média de lucro.
+* Implementar um código de Geopandas para buscar os bairros dos imóveis e melhorar o filtro do CEO.
 * Recomendar a compra de imóveis na baixa temporada e vendê-los na alta. Levando em consideração que as estações do 
 ano inverno e outono os preços dos imóveis estão mais desvalorizados e as estações do ano primavera e verão são as 
 estações que os imóveis estão mais valorizados.   

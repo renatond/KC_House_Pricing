@@ -4,10 +4,8 @@ import streamlit as st
 import plotly.express as px
 import folium
 import geopandas
-from matplotlib import pyplot as plt
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
-from datetime import datetime, date
 from PIL import Image
 
 # =======================================================================
@@ -273,7 +271,7 @@ def sidebar_filters(data):
 
     df = filtered_data[f_attributes].reset_index().drop('index', axis=1)
 
-    return df, filtered_data
+    return df, filtered_data, f_zipcodes
 
 # =======================================================================
 # Data Overview
@@ -559,23 +557,23 @@ def investment_recommendations(investment_dataset):
     investment = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[3]
     brute_return = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[1]
     profit = investment_dataset[['margin', 'selling_price', 'profit', 'price']].sum()[2]
-    margin = investment_dataset[['margin', 'selling_price', 'profit', 'price']].mean()[0]
-    print(f'o investimento necessário foi de ${investment:,}')
-    print(f'o retorno bruto foi de ${brute_return:,}')
-    print(f'o lucro total foi de ${profit:,}')
-    print(f'A margem média ficou em {margin:.2}')
+    margin = investment_dataset[['margin', 'selling_price', 'profit', 'price']].mean()[0] * 100
+    st.markdown(f'O investimento necessário é de ${investment:,}')
+    st.markdown(f'O retorno bruto esperado é de ${brute_return:,}')
+    st.markdown(f'o lucro total esperado é de ${profit:,}')
+    st.markdown(f'A margem média de lucro esperada é de {margin:.2f}%')
 
 if __name__ == '__main__':
-    # ==================
+    # =======================================================================================
     # Extraction
-    # ==================
+    # =======================================================================================
 
     # load dataset
     data = get_data('datasets/kc_house_data.csv')
 
-    # ==================
+    # =======================================================================================
     # Transformation
-    # ==================
+    # =======================================================================================
 
     # Treat outliers
     treat_outliers(data)
@@ -588,24 +586,22 @@ if __name__ == '__main__':
 
     # crete new attributes
     create_new_attributes(data)
-
     # crete investment dataset
     create_investment_dataset(data)
     investment_dataset = create_investment_dataset(data)
 
-    # Measures ============================================================
+    # Measures
     create_measures(data)
 
     #sidebar filters
-    sidebar_filters(data)
-    df, filtered_data = sidebar_filters(data)
+    df, filtered_data, f_zipcodes = sidebar_filters(data)
 
-    # ==================
+    # =======================================================================================
     # Load
-    # ==================
+    # =======================================================================================
 
     # draw maps and dashboard
-    data_overview(df=df, filtered_data= filtered_data)
+    data_overview(df, filtered_data, f_zipcodes)
     temporal_analysis(df, filtered_data)
     properties_attributes(df, filtered_data)
     properties_attributes(df, filtered_data)
